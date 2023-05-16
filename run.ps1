@@ -39,6 +39,12 @@ $binaryPath = Join-Path $PSScriptRoot "main.exe"
 # Prompt for the company code
 $companyCode = Read-Host "Enter the company code"
 
+# Check if the company code is provided
+if ([string]::IsNullOrEmpty($companyCode)) {
+    Write-Host "Company code is required. Exiting the script."
+    exit
+}
+
 # Check if the service exists
 if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
     # Stop the service if it's running
@@ -59,4 +65,22 @@ New-Service -Name $serviceName -BinaryPathName "$binaryPath -companycode $compan
 Write-Host "Starting the '$displayName' service..."
 Start-Service -Name $serviceName
 
+# Set service recovery options to restart on failure
+$service = Get-Service -Name $serviceName
+$recoveryOptions = New-Object System.ServiceProcess.ServiceRecoveryOptions
+$recoveryOptions.RestartServiceDelay = 0
+$recoveryOptions.RestartServiceAction = 'Restart'
+$recoveryOptions.ResetPeriod = 86400  # 24 hours in seconds
+$recoveryOptions.Enabled = $true
+$service.SetRecoveryOptions($recoveryOptions)
 
+# Verify the recovery options
+Write-Host "Service recovery options set:"
+$service.ServiceRecoveryOptions
+
+# Save changes to the service
+$service | Set-Service
+
+# Restart the computer to apply the changes
+Write-Host "Restarting the computer..."
+# Restart-Computer -Force
